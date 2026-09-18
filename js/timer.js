@@ -5,6 +5,12 @@ const BREAK_SECONDS = 5 * 60;
 
 let intervalId = null;
 let listeners = [];
+// Guards tick() against firing more than once for the same real-world second
+// (e.g. overlapping intervals, or another browser tab sharing this
+// localStorage racing to decrement the same counter) — remaining time is
+// always derived fresh from wall-clock, never decremented relative to the
+// last value, so duplicate invocations for the same second are no-ops.
+let lastAnnouncedRemaining = null;
 
 export function onTick(fn) {
   listeners.push(fn);
@@ -19,23 +25,31 @@ function persist(timerPatch) {
   return store.patch({ timer: timerPatch });
 }
 
+function computeRemaining(timer) {
+  const total = timer.mode === "focus" ? timer.presetMinutes * 60 : BREAK_SECONDS;
+  const elapsed = Math.floor((Date.now() - timer.sessionStartedAt) / 1000);
+  return Math.max(0, total - elapsed);
+}
+
 // Recompute remaining time from wall-clock so a backgrounded/reloaded tab
 // doesn't just resume a stale setInterval countdown.
 function reconcileOnResume() {
   const { timer } = store.get();
   if (!timer.running || !timer.sessionStartedAt) return;
-  const elapsed = Math.floor((Date.now() - timer.sessionStartedAt) / 1000);
-  const total = timer.mode === "focus" ? timer.presetMinutes * 60 : BREAK_SECONDS;
-  const remaining = Math.max(0, total - elapsed);
+  const remaining = computeRemaining(timer);
+  lastAnnouncedRemaining = remaining;
   persist({ remainingSeconds: remaining });
   if (remaining === 0) completeSession();
 }
 
 function tick() {
   const { timer } = store.get();
-  if (!timer.running) return;
+  if (!timer.running || !timer.sessionStartedAt) return;
 
-  const remaining = Math.max(0, timer.remainingSeconds - 1);
+  const remaining = computeRemaining(timer);
+  if (remaining === lastAnnouncedRemaining) return; // already handled this second
+  lastAnnouncedRemaining = remaining;
+
   persist({ remainingSeconds: remaining });
 
   if (timer.mode === "focus") playTick();
@@ -46,6 +60,8 @@ function tick() {
 
 function completeSession() {
   const { timer, settings } = store.get();
+
+  lastAnnouncedRemaining = null;
 
   if (timer.mode === "focus") {
     store.addFocusMinutes(timer.presetMinutes);
@@ -83,6 +99,7 @@ export function initTimer() {
 export function start(presetMinutes) {
   const { timer } = store.get();
   const minutes = presetMinutes ?? timer.presetMinutes;
+  lastAnnouncedRemaining = null;
   persist({
     mode: "focus",
     presetMinutes: minutes,
@@ -99,6 +116,7 @@ export function togglePause() {
     start(timer.presetMinutes);
     return;
   }
+  lastAnnouncedRemaining = null;
   persist({
     running: !timer.running,
     sessionStartedAt: !timer.running ? Date.now() - (timer.presetMinutes * 60 - timer.remainingSeconds) * 1000 : timer.sessionStartedAt,
@@ -108,6 +126,7 @@ export function togglePause() {
 
 export function reset() {
   const { timer } = store.get();
+  lastAnnouncedRemaining = null;
   persist({
     mode: "focus",
     running: false,

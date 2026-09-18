@@ -51,6 +51,17 @@ sound), caching only the resolved buffer let both calls independently decode and
 audibly doubling the sound. A `MIN_REPLAY_GAP_MS` guard in `play()` also caps how often
 the same sound can fire, as defense-in-depth against any other duplicate-trigger path.
 
+## Known gotcha: countdown is derived from wall clock, not decremented
+`js/timer.js` computes `remainingSeconds` fresh from `Date.now() - sessionStartedAt`
+every tick (`computeRemaining`), rather than decrementing the previous stored value.
+A `lastAnnouncedRemaining` guard skips any tick that recomputes the *same* second that
+was already announced. This makes ticking idempotent no matter how many times or from
+how many sources it's invoked — the concrete bug this fixed: opening the app in a
+second browser tab (same origin, same localStorage) meant both tabs independently
+decremented the same shared counter, so the visible countdown skipped every other
+second and the tick sound audibly doubled. Wall-clock-derived ticking makes every tab
+compute the identical correct value instead of compounding relative decrements.
+
 ## Data model (localStorage, key `deepwork:state`)
 ```js
 {
