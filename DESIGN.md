@@ -42,6 +42,14 @@ switches, and the yearly progress reveal. Motion stays subtle: fades/scale, no b
 - Soft two-note chime plays when a focus session completes (not on break completion),
   independent of the ticking-sound toggle — its own switch in settings, on by default
 
+## Known gotcha: audio buffer loading race
+`js/sound.js` memoizes the **in-flight fetch+decode promise** for each sound, not just
+the resolved buffer. If two plays of the same sound are triggered before the first
+fetch/decode resolves (e.g. rapid pause/resume on the very first tick after enabling
+sound), caching only the resolved buffer let both calls independently decode and play,
+audibly doubling the sound. A `MIN_REPLAY_GAP_MS` guard in `play()` also caps how often
+the same sound can fire, as defense-in-depth against any other duplicate-trigger path.
+
 ## Data model (localStorage, key `deepwork:state`)
 ```js
 {
