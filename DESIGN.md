@@ -35,6 +35,8 @@ switches, and the yearly progress reveal. Motion stays subtle: fades/scale, no b
   to avoid bloating localStorage with base64 data)
 - Yearly focus progress view — GitHub-contributions-style heatmap (Mon-first weeks,
   month labels aligned to real week columns), plus hours/days/streak summary stats
+- Keyboard shortcuts: `space` start/pause, `r` reset, `s` toggle settings, `y` toggle
+  year progress — ignored while a text input has focus (see `isTypingTarget` in `script.js`)
 
 ## Data model (localStorage, key `deepwork:state`)
 ```js

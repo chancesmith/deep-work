@@ -376,6 +376,15 @@ svg.is-hidden { display: none; }
 }
 
 .sheet__note { margin: 0; font-size: var(--text-xs); color: var(--ink-3); }
+.sheet__note--keys { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.sheet__note--keys kbd {
+  font: inherit;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--line-2);
+  color: var(--ink-2);
+}
 
 .field { display: flex; flex-direction: column; gap: var(--s-2); }
 .field--row { flex-direction: row; align-items: center; justify-content: space-between; }

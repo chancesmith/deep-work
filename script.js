@@ -91,6 +91,31 @@ $$("[data-close]").forEach((b) => b.addEventListener("click", closeSheets));
 $$(".sheet").forEach((s) => s.addEventListener("click", (e) => e.target === s && closeSheets()));
 addEventListener("keydown", (e) => e.key === "Escape" && closeSheets());
 
+/* ---- keyboard shortcuts ---- */
+function isTypingTarget(el) {
+  return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable;
+}
+
+addEventListener("keydown", (e) => {
+  if (isTypingTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+
+  switch (e.key.toLowerCase()) {
+    case " ":
+      e.preventDefault();
+      togglePause();
+      break;
+    case "r":
+      reset();
+      break;
+    case "s":
+      $('[data-sheet="settings"]').classList.contains("is-open") ? closeSheets() : openSheet("settings");
+      break;
+    case "y":
+      $('[data-sheet="progress"]').classList.contains("is-open") ? closeSheets() : openSheet("progress");
+      break;
+  }
+});
+
 /* ---- settings: segmented controls ---- */
 function paintSeg(seg, value) {
   $$(".seg__opt", seg).forEach((opt) => opt.classList.toggle("is-on", opt.dataset.value === value));
