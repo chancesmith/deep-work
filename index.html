@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-layout="big" data-state="idle">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep Work — focus timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+
+<div class="bg" aria-hidden="true"></div>
+
+<!-- ============ APP ============ -->
+<main class="app">
+
+  <header class="bar bar--head">
+    <span class="brand">Deep&thinsp;Work</span>
+    <nav class="bar__actions">
+      <button class="iconbtn" data-open="progress" aria-label="Year progress">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+          <rect x="1" y="4"  width="3" height="3" rx=".6"/><rect x="6.5" y="4" width="3" height="3" rx=".6"/><rect x="12" y="4" width="3" height="3" rx=".6"/>
+          <rect x="1" y="9.5" width="3" height="3" rx=".6"/><rect x="6.5" y="9.5" width="3" height="3" rx=".6"/><rect x="12" y="9.5" width="3" height="3" rx=".6"/>
+        </svg>
+      </button>
+      <button class="iconbtn" data-open="settings" aria-label="Settings">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+          <circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/>
+        </svg>
+      </button>
+    </nav>
+  </header>
+
+  <section class="stage">
+    <p class="stage__label" id="label">Ready</p>
+
+    <div class="clock">
+      <span class="clock__digits" id="digits">45:00</span>
+    </div>
+
+    <div class="track" aria-hidden="true">
+      <span class="track__fill" id="track" style="--pct:0"></span>
+    </div>
+
+    <div class="presets" id="presets">
+      <button class="chip" data-minutes="25">25<span>m</span></button>
+      <button class="chip" data-minutes="45">45<span>m</span></button>
+      <button class="chip" data-minutes="60">1<span>h</span></button>
+      <button class="chip" data-minutes="240">4<span>h</span></button>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn--primary" id="primary">Pause</button>
+      <button class="btn btn--ghost" id="reset-btn">Reset</button>
+    </div>
+
+    <button class="widget__toggle" id="widget-toggle" aria-label="Pause">
+      <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx=".8"/><rect x="9.5" y="2.5" width="3" height="11" rx=".8"/></svg>
+    </button>
+  </section>
+
+  <footer class="bar bar--foot">
+    <span class="stat"><b id="stat-today">0</b> min today</span>
+    <span class="stat"><b id="stat-week">0.0</b> hrs this week</span>
+    <span class="stat stat--muted" id="foot-note"></span>
+  </footer>
+
+</main>
+
+<!-- ============ SETTINGS SHEET ============ -->
+<section class="sheet" data-sheet="settings" aria-hidden="true">
+  <div class="sheet__panel">
+    <header class="sheet__head">
+      <h2>Settings</h2>
+      <button class="iconbtn" data-close aria-label="Close">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+
+    <div class="field">
+      <span class="field__label">Appearance</span>
+      <div class="seg" data-seg="theme">
+        <button class="seg__opt" data-value="light">Light</button>
+        <button class="seg__opt" data-value="dark">Dark</button>
+        <button class="seg__opt" data-value="system">System</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="field__label">Layout</span>
+      <div class="seg" data-seg="layout">
+        <button class="seg__opt" data-value="big">Big</button>
+        <button class="seg__opt" data-value="small">Small</button>
+        <button class="seg__opt" data-value="corner">Corner</button>
+      </div>
+    </div>
+
+    <div class="field field--row">
+      <span class="field__label">Ticking sound</span>
+      <button class="switch" data-switch="soundEnabled" role="switch" aria-checked="false"><span></span></button>
+    </div>
+    <div class="field field--sub">
+      <div class="seg seg--sm" data-seg="soundChoice">
+        <button class="seg__opt" data-value="tick">Tick</button>
+        <button class="seg__opt" data-value="click">Click</button>
+      </div>
+    </div>
+
+    <div class="field field--row">
+      <span class="field__label">Auto-resume after break</span>
+      <button class="switch" data-switch="autoResumeAfterBreak" role="switch" aria-checked="false"><span></span></button>
+    </div>
+
+    <div class="field">
+      <span class="field__label">Background</span>
+      <div class="seg seg--sm" data-seg="background-type">
+        <button class="seg__opt" data-value="none">None</button>
+        <button class="seg__opt" data-value="color">Color</button>
+        <button class="seg__opt" data-value="image">Image</button>
+      </div>
+      <input class="input" id="bg-url" type="url" placeholder="https://images.example.com/photo.jpg" spellcheck="false">
+    </div>
+
+    <p class="sheet__note">Everything stays on this device. No account, no sync.</p>
+  </div>
+</section>
+
+<!-- ============ YEAR PROGRESS SHEET ============ -->
+<section class="sheet" data-sheet="progress" aria-hidden="true">
+  <div class="sheet__panel sheet__panel--wide">
+    <header class="sheet__head">
+      <h2>This year</h2>
+      <button class="iconbtn" data-close aria-label="Close">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+
+    <div class="summary" id="summary">
+      <div class="summary__item"><b data-stat="hours">0</b><span>hours focused</span></div>
+      <div class="summary__item"><b data-stat="days">0</b><span>days with focus</span></div>
+      <div class="summary__item"><b data-stat="streak">0</b><span>day streak</span></div>
+    </div>
+
+    <div class="heat" id="heat">
+      <div class="heat__months" id="heat-months"></div>
+      <div class="heat__body">
+        <div class="heat__days"><span>Mon</span><span>Wed</span><span>Fri</span></div>
+        <div class="heat__grid" id="heat-grid"></div>
+      </div>
+    </div>
+
+    <div class="heat__legend">
+      <span>Less</span>
+      <i data-lvl="0"></i><i data-lvl="1"></i><i data-lvl="2"></i><i data-lvl="3"></i><i data-lvl="4"></i>
+      <span>More</span>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script type="module" src="script.js"></script>
+</body>
+</html>
