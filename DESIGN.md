@@ -51,6 +51,20 @@ sound), caching only the resolved buffer let both calls independently decode and
 audibly doubling the sound. A `MIN_REPLAY_GAP_MS` guard in `play()` also caps how often
 the same sound can fire, as defense-in-depth against any other duplicate-trigger path.
 
+## Known gotcha: resuming must not re-announce the current second
+`js/timer.js` dedupes ticks with `lastAnnouncedRemaining`. Anything that changes timer
+state (start/resume/reset/session rollover) must call `armAnnounceAt()` to point that
+guard at the second *currently on screen* — **not** reset it to `null`. Setting it to
+`null` disarms the guard, so the first tick after resuming re-announces the second that
+already sounded: an audible double tick with no digit change. This is exactly the bug
+that shipped when the guard was first added; the regression signature to test for is
+"two tick sounds for the same displayed second" (see `tests/tick-no-double.spec.js`).
+
+`tick()` is polled every `TICK_POLL_MS` (100ms), not 1000ms. It's a cheap no-op until
+the wall-clock second actually rolls over, and polling at 1s meant the interval's phase
+(anchored to page load) could sit up to a full second away from the countdown's real
+boundaries (anchored to `sessionStartedAt`), so the digit and its tick landed late.
+
 ## Known gotcha: suspended AudioContext queues playback instead of dropping it
 `js/sound.js` creates its `AudioContext` on the first `pointerdown` (required by
 autoplay policy) but a freshly-created context can start in, or later drift into, a
@@ -61,9 +75,12 @@ something resumes the context. If several ticks get scheduled this way, they all
 become audible **at once** the instant a later, unrelated user gesture (e.g. opening
 settings) triggers the browser's own auto-resume — heard as a doubled/burst tick, and
 explains why the first audible tick can feel late relative to the visible countdown.
-Fix: `ctx.resume()` is called synchronously inside the unlocking gesture *and*
-defensively before every `play()` if `ctx.state === "suspended"`, so playback is never
-queued against a non-running context.
+Note that `await ctx.resume()` does **not** solve this — it just moves the backlog from
+the audio graph into pending promises that all resolve together. The fix is to resume
+inside the unlocking gesture, and in `play()` to ask for a resume and then **drop** the
+current sound if the context isn't running yet (a tick only means something at the
+moment it happens; a late one is worse than none). The post-decode path re-checks
+`ctx.state` too, since the context can suspend while a buffer is still decoding.
 
 Short SFX (`tick.wav`, `click.wav`, `chime.wav`) are WAV, not MP3 — MP3 encoding adds
 ~20–50ms of silent encoder-priming padding before the audio content starts, which is

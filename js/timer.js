@@ -2,6 +2,7 @@ import { store } from "./store.js";
 import { playTick, playChime } from "./sound.js";
 
 const BREAK_SECONDS = 5 * 60;
+const TICK_POLL_MS = 100;
 
 let intervalId = null;
 let listeners = [];
@@ -42,6 +43,15 @@ function reconcileOnResume() {
   if (remaining === 0) completeSession();
 }
 
+// Marks the second that's currently on screen as already announced, so the
+// next tick only fires when the countdown genuinely rolls over. Without this,
+// resuming re-announces (and re-ticks) the second that already sounded before
+// the pause — an audible double tick with no digit change.
+function armAnnounceAt(timer) {
+  lastAnnouncedRemaining =
+    timer.running && timer.sessionStartedAt ? computeRemaining(timer) : timer.remainingSeconds;
+}
+
 function tick() {
   const { timer } = store.get();
   if (!timer.running || !timer.sessionStartedAt) return;
@@ -61,8 +71,6 @@ function tick() {
 function completeSession() {
   const { timer, settings } = store.get();
 
-  lastAnnouncedRemaining = null;
-
   if (timer.mode === "focus") {
     store.addFocusMinutes(timer.presetMinutes);
     playChime();
@@ -72,18 +80,20 @@ function completeSession() {
       running: true,
       sessionStartedAt: Date.now(),
     });
+    armAnnounceAt(next.timer);
     notify();
     return next;
   }
 
   // break finished
   const shouldAutoResume = settings.autoResumeAfterBreak;
-  persist({
+  const next = persist({
     mode: "focus",
     remainingSeconds: timer.presetMinutes * 60,
     running: shouldAutoResume,
     sessionStartedAt: shouldAutoResume ? Date.now() : null,
   });
+  armAnnounceAt(next.timer);
   notify();
 }
 
@@ -92,21 +102,24 @@ export function initTimer() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") reconcileOnResume();
   });
-  intervalId = setInterval(tick, 1000);
+  // Polled well under 1s: tick() is a cheap no-op until the wall-clock second
+  // actually rolls over, and polling at 1s left the digit (and its tick sound)
+  // up to a full second behind the real boundary, which felt laggy.
+  intervalId = setInterval(tick, TICK_POLL_MS);
   notify();
 }
 
 export function start(presetMinutes) {
   const { timer } = store.get();
   const minutes = presetMinutes ?? timer.presetMinutes;
-  lastAnnouncedRemaining = null;
-  persist({
+  const next = persist({
     mode: "focus",
     presetMinutes: minutes,
     remainingSeconds: minutes * 60,
     running: true,
     sessionStartedAt: Date.now(),
   });
+  armAnnounceAt(next.timer);
   notify();
 }
 
@@ -116,23 +129,23 @@ export function togglePause() {
     start(timer.presetMinutes);
     return;
   }
-  lastAnnouncedRemaining = null;
-  persist({
+  const next = persist({
     running: !timer.running,
     sessionStartedAt: !timer.running ? Date.now() - (timer.presetMinutes * 60 - timer.remainingSeconds) * 1000 : timer.sessionStartedAt,
   });
+  armAnnounceAt(next.timer);
   notify();
 }
 
 export function reset() {
   const { timer } = store.get();
-  lastAnnouncedRemaining = null;
-  persist({
+  const next = persist({
     mode: "focus",
     running: false,
     remainingSeconds: timer.presetMinutes * 60,
     sessionStartedAt: null,
   });
+  armAnnounceAt(next.timer);
   notify();
 }
 

@@ -25,24 +25,29 @@ function loadBuffer(name) {
 async function play(name) {
   if (!ctx) return;
 
+  // A suspended context still accepts start() calls — it just queues them at
+  // time-zero instead of playing. Awaiting resume() is no better: the pending
+  // plays pile up and all resolve together. Either way they fire as one burst
+  // the instant a later gesture (e.g. opening settings) resumes the context.
+  // So: ask it to resume and drop *this* sound. A tick is only meaningful at
+  // the moment it happens — a late one is worse than none.
+  if (ctx.state !== "running") {
+    ctx.resume();
+    return;
+  }
+
   const now = performance.now();
   if (now - (lastPlayedAt[name] ?? -Infinity) < MIN_REPLAY_GAP_MS) return;
   lastPlayedAt[name] = now;
 
   try {
-    // A suspended context still accepts start() calls — it just queues them
-    // at time-zero instead of playing. If several ticks get scheduled while
-    // suspended, they all fire together the instant something (e.g. opening
-    // settings) later triggers the browser's own auto-resume, sounding like
-    // a doubled/burst tick. Resuming here keeps every play tied to a context
-    // that's actually running.
-    if (ctx.state === "suspended") await ctx.resume();
-
     const buffer = await loadBuffer(name);
+    if (ctx.state !== "running") return; // suspended while we were decoding
+
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);
-    source.start(0);
+    source.start();
   } catch {
     /* sound file missing or blocked — fail silently, timer keeps running */
   }
