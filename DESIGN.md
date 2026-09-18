@@ -51,6 +51,16 @@ sound), caching only the resolved buffer let both calls independently decode and
 audibly doubling the sound. A `MIN_REPLAY_GAP_MS` guard in `play()` also caps how often
 the same sound can fire, as defense-in-depth against any other duplicate-trigger path.
 
+## Open bug: ticking sound still doubles in some conditions
+See [issue #1](https://github.com/chancesmith/deep-work/issues/1). Several real causes
+have been found and fixed (see the gotchas below, and keep their regression tests), but
+doubling is still reported. **Leading suspect: the audio was never made multi-tab safe.**
+`0a3ea96` made the *countdown* idempotent across tabs, but every open tab still runs its
+own poll loop and calls `playTick()` independently — two open tabs measurably produce
+~8 audible ticks per 4 seconds, on independent phases. Likely fix is sound ownership
+(a visibility gate and/or leader election via `BroadcastChannel`). Read the issue before
+attempting another fix; it lists what's already been ruled out with evidence.
+
 ## Known gotcha: resuming must not re-announce the current second
 `js/timer.js` dedupes ticks with `lastAnnouncedRemaining`. Anything that changes timer
 state (start/resume/reset/session rollover) must call `armAnnounceAt()` to point that
