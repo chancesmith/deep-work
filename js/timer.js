@@ -1,5 +1,5 @@
 import { store } from "./store.js";
-import { playTick } from "./sound.js";
+import { playTick, playChime } from "./sound.js";
 
 const BREAK_SECONDS = 5 * 60;
 
@@ -49,6 +49,7 @@ function completeSession() {
 
   if (timer.mode === "focus") {
     store.addFocusMinutes(timer.presetMinutes);
+    playChime();
     const next = persist({
       mode: "break",
       remainingSeconds: BREAK_SECONDS,

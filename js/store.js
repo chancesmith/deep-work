@@ -6,6 +6,7 @@ const DEFAULTS = {
     layout: "big",
     soundEnabled: false,
     soundChoice: "tick",
+    completionSoundEnabled: true,
     background: { type: "none", value: "" },
     autoResumeAfterBreak: true,
     defaultPresetMinutes: 45,

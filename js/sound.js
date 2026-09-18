@@ -11,6 +11,19 @@ async function loadBuffer(name) {
   return buffers[name];
 }
 
+async function play(name) {
+  if (!ctx) return;
+  try {
+    const buffer = await loadBuffer(name);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+  } catch {
+    /* sound file missing or blocked — fail silently, timer keeps running */
+  }
+}
+
 export function initSound() {
   document.addEventListener(
     "pointerdown",
@@ -21,16 +34,14 @@ export function initSound() {
   );
 }
 
-export async function playTick() {
+export function playTick() {
   const { settings } = store.get();
-  if (!settings.soundEnabled || !ctx) return;
-  try {
-    const buffer = await loadBuffer(settings.soundChoice);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-    source.start(0);
-  } catch {
-    /* sound file missing or blocked — fail silently, timer keeps running */
-  }
+  if (!settings.soundEnabled) return;
+  play(settings.soundChoice);
+}
+
+export function playChime() {
+  const { settings } = store.get();
+  if (!settings.completionSoundEnabled) return;
+  play("chime");
 }

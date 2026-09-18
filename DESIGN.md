@@ -37,6 +37,10 @@ switches, and the yearly progress reveal. Motion stays subtle: fades/scale, no b
   month labels aligned to real week columns), plus hours/days/streak summary stats
 - Keyboard shortcuts: `space` start/pause, `r` reset, `s` toggle settings, `y` toggle
   year progress — ignored while a text input has focus (see `isTypingTarget` in `script.js`)
+- Page title shows the live countdown (`MM:SS · Focus/Break/Paused`) so a background tab
+  stays readable; reverts to "Deep Work" when idle
+- Soft two-note chime plays when a focus session completes (not on break completion),
+  independent of the ticking-sound toggle — its own switch in settings, on by default
 
 ## Data model (localStorage, key `deepwork:state`)
 ```js

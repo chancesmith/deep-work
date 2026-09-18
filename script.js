@@ -62,6 +62,10 @@ function render(state) {
 
   const crossedMode = (prevState === "break") !== (visualState === "break");
   if (crossedMode) fadeModeSwitch([$("#label"), $("#digits")]);
+
+  document.title = isIdle
+    ? "Deep Work"
+    : `${formatTime(timer.remainingSeconds)} · ${timer.running ? LABEL[visualState] : "Paused"}`;
 }
 
 /* ---- timer controls ---- */
