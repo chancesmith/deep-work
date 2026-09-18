@@ -117,8 +117,18 @@ addEventListener("keydown", (e) => {
     case "y":
       $('[data-sheet="progress"]').classList.contains("is-open") ? closeSheets() : openSheet("progress");
       break;
+    case "l":
+      cycleLayout();
+      break;
   }
 });
+
+const LAYOUTS = ["big", "small", "corner"];
+function cycleLayout() {
+  const next = LAYOUTS[(LAYOUTS.indexOf(root.dataset.layout) + 1) % LAYOUTS.length];
+  setLayout(next, { animate: () => layoutSwitch($(".stage")) });
+  paintSeg($('[data-seg="layout"]'), next);
+}
 
 /* ---- settings: segmented controls ---- */
 function paintSeg(seg, value) {

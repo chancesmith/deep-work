@@ -36,7 +36,8 @@ switches, and the yearly progress reveal. Motion stays subtle: fades/scale, no b
 - Yearly focus progress view — GitHub-contributions-style heatmap (Mon-first weeks,
   month labels aligned to real week columns), plus hours/days/streak summary stats
 - Keyboard shortcuts: `space` start/pause, `r` reset, `s` toggle settings, `y` toggle
-  year progress — ignored while a text input has focus (see `isTypingTarget` in `script.js`)
+  year progress, `l` cycle layout (big → small → corner) — ignored while a text input
+  has focus (see `isTypingTarget` in `script.js`)
 - Page title shows the live countdown (`MM:SS · Focus/Break/Paused`) so a background tab
   stays readable; reverts to "Deep Work" when idle
 - Soft two-note chime plays when a focus session completes (not on break completion),

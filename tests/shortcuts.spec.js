@@ -44,3 +44,19 @@ test("shortcuts are ignored while typing in the background URL field", async ({ 
   await page.keyboard.type("https://example.com/space.jpg");
   await expect(page.locator("#primary")).toHaveText("Start"); // space keystrokes didn't start the timer
 });
+
+test("l cycles through layouts big -> small -> corner -> big", async ({ page }) => {
+  await expect(page.locator("html")).toHaveAttribute("data-layout", "big");
+  await page.keyboard.press("l");
+  await expect(page.locator("html")).toHaveAttribute("data-layout", "small");
+  await page.keyboard.press("l");
+  await expect(page.locator("html")).toHaveAttribute("data-layout", "corner");
+  await page.keyboard.press("l");
+  await expect(page.locator("html")).toHaveAttribute("data-layout", "big");
+});
+
+test("l keeps the settings layout picker in sync when open", async ({ page }) => {
+  await page.keyboard.press("s");
+  await page.keyboard.press("l");
+  await expect(page.locator('[data-seg="layout"] [data-value="small"]')).toHaveClass(/is-on/);
+});
