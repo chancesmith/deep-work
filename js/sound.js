@@ -11,7 +11,7 @@ function loadBuffer(name) {
   // calls to play() before the first fetch+decode finishes each start their
   // own fetch/decode and both end up playing, sounding like a doubled tick.
   if (!bufferPromises[name]) {
-    bufferPromises[name] = fetch(`sounds/${name}.mp3`)
+    bufferPromises[name] = fetch(`sounds/${name}.wav`)
       .then((res) => res.arrayBuffer())
       .then((arr) => ctx.decodeAudioData(arr))
       .catch((err) => {
@@ -30,6 +30,14 @@ async function play(name) {
   lastPlayedAt[name] = now;
 
   try {
+    // A suspended context still accepts start() calls — it just queues them
+    // at time-zero instead of playing. If several ticks get scheduled while
+    // suspended, they all fire together the instant something (e.g. opening
+    // settings) later triggers the browser's own auto-resume, sounding like
+    // a doubled/burst tick. Resuming here keeps every play tied to a context
+    // that's actually running.
+    if (ctx.state === "suspended") await ctx.resume();
+
     const buffer = await loadBuffer(name);
     const source = ctx.createBufferSource();
     source.buffer = buffer;
@@ -44,7 +52,13 @@ export function initSound() {
   document.addEventListener(
     "pointerdown",
     () => {
-      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!ctx) {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        // Resume synchronously within the gesture handler — some browsers
+        // (notably Safari) only honor resume() when called directly inside
+        // the user-gesture callback, not from a later async tick.
+        ctx.resume();
+      }
     },
     { once: true }
   );

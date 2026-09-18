@@ -51,6 +51,24 @@ sound), caching only the resolved buffer let both calls independently decode and
 audibly doubling the sound. A `MIN_REPLAY_GAP_MS` guard in `play()` also caps how often
 the same sound can fire, as defense-in-depth against any other duplicate-trigger path.
 
+## Known gotcha: suspended AudioContext queues playback instead of dropping it
+`js/sound.js` creates its `AudioContext` on the first `pointerdown` (required by
+autoplay policy) but a freshly-created context can start in, or later drift into, a
+`"suspended"` state — notably on Safari, which is stricter than Chromium about
+honoring an implicit resume. Calling `source.start(0)` on a suspended context doesn't
+play anything or error — it silently schedules the source at time-zero, queued until
+something resumes the context. If several ticks get scheduled this way, they all
+become audible **at once** the instant a later, unrelated user gesture (e.g. opening
+settings) triggers the browser's own auto-resume — heard as a doubled/burst tick, and
+explains why the first audible tick can feel late relative to the visible countdown.
+Fix: `ctx.resume()` is called synchronously inside the unlocking gesture *and*
+defensively before every `play()` if `ctx.state === "suspended"`, so playback is never
+queued against a non-running context.
+
+Short SFX (`tick.wav`, `click.wav`, `chime.wav`) are WAV, not MP3 — MP3 encoding adds
+~20–50ms of silent encoder-priming padding before the audio content starts, which is
+proportionally huge (and audible) on a ~40ms tick.
+
 ## Known gotcha: countdown is derived from wall clock, not decremented
 `js/timer.js` computes `remainingSeconds` fresh from `Date.now() - sessionStartedAt`
 every tick (`computeRemaining`), rather than decrementing the previous stored value.
@@ -102,8 +120,8 @@ script.js          -- entry, wires modules to the DOM
   progress.js      -- year heatmap render from history
   animations.js    -- GSAP timelines
 /sounds
-  tick.mp3
-  click.mp3
+  tick.wav
+  click.wav
 ```
 Vanilla ES modules, no bundler — static hosting needs none.
 

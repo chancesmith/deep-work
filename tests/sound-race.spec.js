@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 
 test("two near-simultaneous tick triggers before the buffer is cached only play once", async ({ page }) => {
   // Reproduces the reported bug: pressing pause/play fast fires two ticks
-  // before the first fetch+decode of tick.mp3 resolves, which previously
+  // before the first fetch+decode of tick.wav resolves, which previously
   // caused both to independently decode and play, sounding doubled.
   await page.evaluate(async () => {
     window.__starts = 0;
