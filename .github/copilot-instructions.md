@@ -34,5 +34,9 @@ focus minutes in `localStorage` and shows a GitHub-contributions-style yearly pr
 - No file-upload backgrounds (base64 in localStorage) — URL input only
 - Don't record history minutes for cancelled sessions or break time
 
+## Testing
+Playwright tests live in `tests/`. Run with `npm test`. Any bug fix to timer/layout/settings
+behavior should get a regression test alongside it.
+
 ## Sync note
 Keep this file in sync with DESIGN.md and AGENTS.md at the repo root.

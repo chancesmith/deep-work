@@ -80,3 +80,8 @@ script.js          -- entry, wires modules to the DOM
   click.mp3
 ```
 Vanilla ES modules, no bundler — static hosting needs none.
+
+## Testing
+Playwright (`tests/`) covers the timer state machine, layout switching (including the
+corner-layout escape hatch), and settings reset. Run with `npm test` (installs browsers
+once via `npx playwright install chromium`).

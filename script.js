@@ -43,6 +43,9 @@ function render(state) {
   $("#track").style.setProperty("--pct", isIdle ? 0 : 1 - timer.remainingSeconds / total);
 
   $("#primary").textContent = isIdle ? "Start" : timer.running ? "Pause" : "Resume";
+  $("#widget-toggle").setAttribute("aria-label", timer.running ? "Pause" : "Start");
+  $(".icon-pause", $("#widget-toggle")).classList.toggle("is-hidden", !timer.running);
+  $(".icon-play", $("#widget-toggle")).classList.toggle("is-hidden", timer.running);
 
   $$(".chip").forEach((c) => c.classList.toggle("is-on", Number(c.dataset.minutes) === timer.presetMinutes));
 
@@ -141,6 +144,14 @@ $$(".switch[data-switch]").forEach((sw) => {
     sw.classList.toggle("is-on", next);
     sw.setAttribute("aria-checked", String(next));
   });
+});
+
+$("#reset-defaults").addEventListener("click", () => {
+  const state = store.resetSettings();
+  initTheme();
+  initLayout();
+  hydrateSettingsUI();
+  render(state);
 });
 
 /* ---- init from stored settings ---- */

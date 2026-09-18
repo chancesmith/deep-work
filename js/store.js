@@ -61,4 +61,14 @@ export const store = {
     write(next);
     return next;
   },
+  resetSettings() {
+    const state = read();
+    const next = {
+      settings: structuredClone(DEFAULTS.settings),
+      timer: structuredClone(DEFAULTS.timer),
+      history: state.history,
+    };
+    write(next);
+    return next;
+  },
 };

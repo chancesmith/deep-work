@@ -95,6 +95,7 @@ body {
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 
 svg { fill: currentColor; }
+svg.is-hidden { display: none; }
 
 /* ============================================================
    Optional background layer
@@ -250,21 +251,24 @@ svg { fill: currentColor; }
 .btn--primary:hover { opacity: .85; }
 .btn--ghost { color: var(--ink-3); }
 .btn--ghost:hover { color: var(--ink); }
+.btn--danger { color: var(--ink-3); }
+.btn--danger:hover { color: var(--accent); }
 
-/* corner-widget-only control */
-.widget__toggle {
-  display: none;
+/* corner-widget-only controls */
+.widget__controls { display: none; gap: 2px; }
+.widget__btn {
   width: 26px; height: 26px;
-  place-items: center;
+  display: grid; place-items: center;
   border-radius: 50%;
   color: var(--ink-2);
 }
-.widget__toggle:hover { color: var(--ink); }
+.widget__btn:hover { color: var(--ink); background: var(--line-2); }
+.widget__btn .icon-play { margin-left: 1px; }
 
 /* ---- state: idle ---- */
 [data-state="idle"] .stage__label { color: var(--ink-3); }
 [data-state="idle"] .track { opacity: 0; }
-[data-state="idle"] .btn--ghost { display: none; }
+[data-state="idle"] .actions .btn--ghost { display: none; }
 [data-state="idle"] #primary { padding-inline: var(--s-7); }
 
 /* ---- state: paused ---- */
@@ -328,7 +332,7 @@ svg { fill: currentColor; }
   font-weight: 400;
   letter-spacing: -.02em;
 }
-[data-layout="corner"] .widget__toggle { display: grid; }
+[data-layout="corner"] .widget__controls { display: flex; }
 
 /* ============================================================
    Sheets (settings / year progress)
