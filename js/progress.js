@@ -1,5 +1,6 @@
 import { store } from "./store.js";
 import { heatmapReveal } from "./animations.js";
+import { localDateKey } from "./date.js";
 
 function levelFor(minutes) {
   if (!minutes) return 0;
@@ -47,7 +48,7 @@ export function renderProgress() {
 
   for (let d = 0; d < dayCount; d++) {
     const date = new Date(year, 0, 1 + d);
-    const key = date.toISOString().slice(0, 10);
+    const key = localDateKey(date);
     const minutes = history[key] || 0;
 
     if (date > today) {

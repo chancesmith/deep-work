@@ -32,6 +32,8 @@ focus minutes in `localStorage` and shows a GitHub-contributions-style yearly pr
 ## Avoid
 - No bundler/build step — keep it plain static files
 - No file-upload backgrounds (base64 in localStorage) — URL input only
+- Use `localDateKey()` from `js/date.js` for any history key — `toISOString()` gives the
+  UTC date, which misfiles evening sessions for users west of UTC
 - Don't collapse `backgroundColor` / `backgroundImageUrl` back into one shared field —
   they're separate so switching type doesn't discard the other value
 - Keep `render()` off `querySelector`: it runs every second, so use the cached `el` refs

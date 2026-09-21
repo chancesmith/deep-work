@@ -5,6 +5,7 @@ import { initSound } from "./js/sound.js";
 import { initTimer, onTick, start, togglePause, reset, setPreset, formatTime } from "./js/timer.js";
 import { renderProgress } from "./js/progress.js";
 import { fadeModeSwitch, layoutSwitch, sheetOpen } from "./js/animations.js";
+import { localDateKey } from "./js/date.js";
 
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
@@ -51,7 +52,7 @@ function weekMinutes(history) {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    total += history[d.toISOString().slice(0, 10)] || 0;
+    total += history[localDateKey(d)] || 0;
   }
   weekCache = { key, history, total };
   return total;
@@ -78,7 +79,7 @@ function render(state) {
 
   el.chips.forEach((c) => c.classList.toggle("is-on", Number(c.dataset.minutes) === timer.presetMinutes));
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   setText(el.statToday, history[today] || 0);
   setText(el.statWeek, (weekMinutes(history) / 60).toFixed(1));
   setText(el.footNote, isIdle

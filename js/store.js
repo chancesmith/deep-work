@@ -1,3 +1,5 @@
+import { localDateKey } from "./date.js";
+
 const KEY = "deepwork:state";
 
 const DEFAULTS = {
@@ -86,7 +88,7 @@ export const store = {
   addFocusMinutes(minutes) {
     if (minutes <= 0) return read();
     const state = read();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey();
     const history = { ...state.history, [today]: (state.history[today] || 0) + minutes };
     const next = { ...state, history };
     write(next);

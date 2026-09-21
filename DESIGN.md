@@ -55,7 +55,25 @@ sound), caching only the resolved buffer let both calls independently decode and
 audibly doubling the sound. A `MIN_REPLAY_GAP_MS` guard in `play()` also caps how often
 the same sound can fire, as defense-in-depth against any other duplicate-trigger path.
 
+## History days are keyed to the user's local date
+Always use `localDateKey()` from `js/date.js` for history keys — never
+`toISOString().slice(0, 10)`, which yields the **UTC** date. West of UTC that filed
+evening sessions against tomorrow (9pm US Central is already the next UTC day), skewing
+"min today" and the year heatmap. Covered by `tests/local-date.spec.js`, which pins a
+timezone and clock to the window where the two dates disagree.
+
+Existing history written before this fix isn't migrated — there's no reliable way to
+tell which entries were logged inside the shifted window, so old evening sessions may
+still sit on the following day.
+
 ## Performance notes (older machines)
+Measured from a DevTools trace plus CDP counters while a session ran: **~6% main-thread
+busy**, and over 5s of ticking only **17 style recalcs / 5 layouts / 5.7ms script /
+28.5ms total task time**. The app is not the bottleneck; in that trace the single 144ms
+"long task" was `CpuProfiler::StartProfiling` (the profiler itself) and a chunk of the
+style-recalc volume came from an injected browser extension, not this code. Re-measure
+before optimising further.
+
 The always-on cost is the once-per-second render plus the timer poll, so:
 - `store.read()` memoises the parsed state against the exact raw string it came from.
   The cheap `getItem` still runs every poll (so writes from any source — this tab,
@@ -145,7 +163,7 @@ compute the identical correct value instead of compounding relative decrements.
     presetMinutes: number,
     sessionStartedAt: timestamp | null
   },
-  history: { "2026-09-18": 45 }   // date -> completed focus minutes
+  history: { "2026-09-18": 45 }   // LOCAL date -> completed focus minutes
 }
 ```
 Only **completed** focus sessions write to `history`; cancels and breaks do not.
