@@ -100,3 +100,56 @@ test("legacy { type, value } background state migrates to the split fields", asy
   await expect(page.locator("html")).toHaveAttribute("data-bg", "image");
   await expect(page.locator("#bg-url")).toHaveValue("https://example.com/old.jpg");
 });
+
+test("preset swatches set the colour without the native dialog", async ({ page }) => {
+  await page.locator('[data-seg="background-type"] [data-value="color"]').click();
+  await page.locator('.swatch[data-color="#D7E3DA"]').click();
+
+  await expect(page.locator('.swatch[data-color="#D7E3DA"]')).toHaveClass(/is-on/);
+  await expect(page.locator("#bg-color")).toHaveValue("#d7e3da");
+  expect((await settings(page)).backgroundColor).toBe("#D7E3DA");
+
+  const painted = await page.locator(".bg").evaluate((n) => getComputedStyle(n).backgroundColor);
+  expect(painted).toBe("rgb(215, 227, 218)");
+
+  // and it survives a refresh, with the swatch still marked
+  await page.reload();
+  expect((await settings(page)).backgroundType).toBe("color");
+  await page.locator('[data-open="settings"]').first().click();
+  await expect(page.locator('.swatch[data-color="#D7E3DA"]')).toHaveClass(/is-on/);
+});
+
+test("Escape in the colour input is left to the native dialog, not the sheet", async ({ page }) => {
+  await page.locator('[data-seg="background-type"] [data-value="color"]').click();
+  await page.locator("#bg-color").focus();
+  await page.keyboard.press("Escape");
+
+  // the sheet stays open — Escape there belongs to the colour dialog
+  await expect(page.locator('[data-sheet="settings"]')).toHaveClass(/is-open/);
+
+  // but Escape anywhere else still closes it
+  await page.locator("#swatches").click({ position: { x: 1, y: 1 } });
+  await page.keyboard.press("Escape");
+  await expect(page.locator('[data-sheet="settings"]')).not.toHaveClass(/is-open/);
+});
+
+test("a garbage backgroundType falls back instead of blanking the picker", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "deepwork:state",
+      JSON.stringify({
+        settings: { backgroundType: "bogus", backgroundColor: "not-a-colour" },
+        timer: {},
+        history: {},
+      })
+    );
+  });
+  await page.reload();
+
+  // the type picker must always have exactly one option selected
+  await page.locator('[data-open="settings"]').first().click();
+  await expect(page.locator('[data-seg="background-type"] .seg__opt.is-on')).toHaveCount(1);
+  await expect(page.locator('[data-seg="background-type"] [data-value="none"]')).toHaveClass(/is-on/);
+  await expect(page.locator("html")).toHaveAttribute("data-bg", "none");
+  await expect(page.locator("#bg-color")).toHaveValue("#dcd9ce");
+});

@@ -448,10 +448,24 @@ svg.is-hidden { display: none; }
 [data-bg="image"] .bg-control[data-bg-control="image"] { display: flex; }
 
 .bg-control[data-bg-control="color"] {
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--s-3);
-  cursor: pointer;
 }
+
+.swatches { display: flex; gap: var(--s-2); }
+.swatch {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--swatch);
+  border: 1px solid rgba(0,0,0,.12);
+  box-shadow: 0 0 0 0 var(--ink);
+  transition: box-shadow .15s var(--ease), transform .15s var(--ease);
+}
+.swatch:hover { transform: translateY(-1px); }
+.swatch.is-on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--ink); }
+
+.bg-control__custom { display: inline-flex; align-items: center; gap: var(--s-3); }
 .input--color {
   width: 44px;
   height: 32px;

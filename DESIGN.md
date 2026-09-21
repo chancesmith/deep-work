@@ -55,6 +55,20 @@ sound), caching only the resolved buffer let both calls independently decode and
 audibly doubling the sound. A `MIN_REPLAY_GAP_MS` guard in `play()` also caps how often
 the same sound can fire, as defense-in-depth against any other duplicate-trigger path.
 
+## Background colour: presets first, native dialog optional
+Colour is chosen from preset swatches; the `<input type="color">` is only the "custom"
+escape hatch. The native dialog is the fragile part — it's an OS-level window that takes
+focus, and **Escape dismisses it**, which would otherwise reach the sheet's own Escape
+handler and close the whole panel. So Escape is ignored while that input has focus. The
+input is also not wrapped in a `<label>` any more (a label wrapping its own control can
+double-activate it).
+
+`store.read()` coerces `backgroundType` to one of `none|color|image` and
+`backgroundColor` to a `#rrggbb` string. Both feed selectors that match on exact value
+(`[data-bg="..."]` shows the control, and the seg marks `is-on` by value), so an invalid
+value used to leave the picker with *nothing* selected and the control hidden — which
+reads as "the setting vanished" rather than as bad data.
+
 ## History days are keyed to the user's local date
 Always use `localDateKey()` from `js/date.js` for history keys — never
 `toISOString().slice(0, 10)`, which yields the **UTC** date. West of UTC that filed

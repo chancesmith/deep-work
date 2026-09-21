@@ -27,6 +27,27 @@ const DEFAULTS = {
 
 // Background used to be { type, value } with one `value` shared by colour and
 // image, so switching type clobbered the other one. Split into three fields.
+const BACKGROUND_TYPES = ["none", "color", "image"];
+const HEX = /^#[0-9a-f]{6}$/i;
+
+// Anything stored for these has to round-trip into a valid UI state. A bad or
+// missing backgroundType used to leave the type picker with nothing selected
+// and hide the colour control (the seg matches on exact value, and the control
+// is shown by a [data-bg="..."] selector), which read as "the setting vanished".
+function coerceSettings(settings) {
+  const next = { ...settings };
+  if (!BACKGROUND_TYPES.includes(next.backgroundType)) {
+    next.backgroundType = DEFAULTS.settings.backgroundType;
+  }
+  if (typeof next.backgroundColor !== "string" || !HEX.test(next.backgroundColor)) {
+    next.backgroundColor = DEFAULTS.settings.backgroundColor;
+  }
+  if (typeof next.backgroundImageUrl !== "string") {
+    next.backgroundImageUrl = DEFAULTS.settings.backgroundImageUrl;
+  }
+  return next;
+}
+
 function migrateSettings(settings) {
   const next = { ...settings };
   const legacy = next.background;
@@ -55,7 +76,7 @@ function read() {
   try {
     const parsed = raw ? JSON.parse(raw) : {};
     cache = {
-      settings: { ...DEFAULTS.settings, ...migrateSettings(parsed.settings || {}) },
+      settings: coerceSettings({ ...DEFAULTS.settings, ...migrateSettings(parsed.settings || {}) }),
       timer: { ...DEFAULTS.timer, ...parsed.timer },
       history: parsed.history || {},
     };

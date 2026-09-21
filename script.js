@@ -124,7 +124,13 @@ function closeSheets() {
 $$("[data-open]").forEach((b) => b.addEventListener("click", () => openSheet(b.dataset.open)));
 $$("[data-close]").forEach((b) => b.addEventListener("click", closeSheets));
 $$(".sheet").forEach((s) => s.addEventListener("click", (e) => e.target === s && closeSheets()));
-addEventListener("keydown", (e) => e.key === "Escape" && closeSheets());
+addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  // Escape is also how the native colour dialog is dismissed; if that input has
+  // focus the key is almost certainly meant for the dialog, not the sheet.
+  if (e.target === bgColorInput) return;
+  closeSheets();
+});
 
 /* ---- keyboard shortcuts ---- */
 function isTypingTarget(el) {
@@ -200,11 +206,30 @@ bgUrlInput.addEventListener("change", () => {
   applyBackground(store.patch({ settings: { backgroundImageUrl: bgUrlInput.value.trim() } }).settings);
 });
 
-bgColorInput.addEventListener("input", () => {
-  const backgroundColor = bgColorInput.value;
-  $("#bg-color-value").textContent = backgroundColor;
+function setBackgroundColor(backgroundColor) {
+  bgColorInput.value = backgroundColor;
+  $("#bg-color-value").textContent = backgroundColor.toUpperCase();
+  paintSwatches(backgroundColor);
   applyBackground(store.patch({ settings: { backgroundColor } }).settings);
+}
+
+function paintSwatches(backgroundColor) {
+  $$(".swatch").forEach((sw) =>
+    sw.classList.toggle("is-on", sw.dataset.color.toLowerCase() === backgroundColor.toLowerCase())
+  );
+}
+
+// Presets mean picking a colour never depends on the OS colour dialog, which is
+// the fragile part — it steals focus, and dismissing it with Escape would
+// otherwise reach the sheet's own Escape handler and close the whole panel.
+$("#swatches").addEventListener("click", (e) => {
+  const swatch = e.target.closest(".swatch");
+  if (swatch) setBackgroundColor(swatch.dataset.color);
 });
+
+// `input` fires live while dragging in the dialog, `change` on commit
+bgColorInput.addEventListener("input", () => setBackgroundColor(bgColorInput.value));
+bgColorInput.addEventListener("change", () => setBackgroundColor(bgColorInput.value));
 
 // Only http(s) URLs, normalised through the URL parser so quotes and parens
 // come back percent-encoded and can't break out of the CSS url("...") value.
@@ -256,7 +281,8 @@ function hydrateSettingsUI() {
   paintSeg($('[data-seg="background-type"]'), settings.backgroundType);
   bgUrlInput.value = settings.backgroundImageUrl;
   bgColorInput.value = settings.backgroundColor;
-  $("#bg-color-value").textContent = settings.backgroundColor;
+  $("#bg-color-value").textContent = settings.backgroundColor.toUpperCase();
+  paintSwatches(settings.backgroundColor);
   applyBackground(settings);
 
   $$(".switch[data-switch]").forEach((sw) => {

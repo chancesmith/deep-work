@@ -134,10 +134,20 @@
         <button class="seg__opt" data-value="color">Color</button>
         <button class="seg__opt" data-value="image">Image</button>
       </div>
-      <label class="bg-control" data-bg-control="color">
-        <input class="input input--color" id="bg-color" type="color" aria-label="Background colour">
-        <span class="bg-control__hint" id="bg-color-value">#DCD9CE</span>
-      </label>
+      <div class="bg-control" data-bg-control="color">
+        <div class="swatches" id="swatches" role="group" aria-label="Background colour presets">
+          <button class="swatch" data-color="#DCD9CE" style="--swatch:#DCD9CE" aria-label="Warm grey"></button>
+          <button class="swatch" data-color="#E8E0D4" style="--swatch:#E8E0D4" aria-label="Sand"></button>
+          <button class="swatch" data-color="#D7E3DA" style="--swatch:#D7E3DA" aria-label="Sage"></button>
+          <button class="swatch" data-color="#D9E2EC" style="--swatch:#D9E2EC" aria-label="Slate blue"></button>
+          <button class="swatch" data-color="#EADFE3" style="--swatch:#EADFE3" aria-label="Dusty rose"></button>
+          <button class="swatch" data-color="#1B2320" style="--swatch:#1B2320" aria-label="Deep green"></button>
+        </div>
+        <span class="bg-control__custom">
+          <input class="input input--color" id="bg-color" type="color" aria-label="Custom background colour">
+          <span class="bg-control__hint" id="bg-color-value">#DCD9CE</span>
+        </span>
+      </div>
       <input class="input bg-control" data-bg-control="image" id="bg-url" type="url" placeholder="https://images.example.com/photo.jpg" spellcheck="false">
     </div>
 
