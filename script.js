@@ -14,17 +14,46 @@ const root = document.documentElement;
 
 const LABEL = { idle: "Ready", focus: "Focus", break: "Break" };
 
+// render() runs every second, so the nodes it touches are looked up once here
+// rather than re-queried on each pass.
+const el = {
+  label: $("#label"),
+  digits: $("#digits"),
+  track: $("#track"),
+  primary: $("#primary"),
+  widgetToggle: $("#widget-toggle"),
+  iconPause: $("#widget-toggle .icon-pause"),
+  iconPlay: $("#widget-toggle .icon-play"),
+  chips: $$(".chip"),
+  statToday: $("#stat-today"),
+  statWeek: $("#stat-week"),
+  footNote: $("#foot-note"),
+};
+
+// Skips the write when the value is unchanged — most of these only change
+// once a session, not once a second.
+function setText(node, value) {
+  const text = String(value);
+  if (node.textContent !== text) node.textContent = text;
+}
+
+let weekCache = { key: null, history: null, total: 0 };
 function weekMinutes(history) {
   const now = new Date();
   const day = (now.getDay() + 6) % 7; // Monday = 0
   const monday = new Date(now);
   monday.setDate(now.getDate() - day);
+
+  const key = monday.toDateString();
+  if (weekCache.key === key && weekCache.history === history) return weekCache.total;
+
   let total = 0;
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     total += history[d.toISOString().slice(0, 10)] || 0;
   }
+  weekCache = { key, history, total };
   return total;
 }
 
@@ -36,36 +65,37 @@ function render(state) {
   const prevState = root.dataset.state;
   root.dataset.state = visualState;
 
-  $("#label").textContent = LABEL[visualState];
-  $("#digits").textContent = formatTime(timer.remainingSeconds);
+  setText(el.label, LABEL[visualState]);
+  setText(el.digits, formatTime(timer.remainingSeconds));
 
   const total = timer.mode === "focus" ? timer.presetMinutes * 60 : BREAK_SECONDS;
-  $("#track").style.setProperty("--pct", isIdle ? 0 : 1 - timer.remainingSeconds / total);
+  el.track.style.setProperty("--pct", isIdle ? 0 : 1 - timer.remainingSeconds / total);
 
-  $("#primary").textContent = isIdle ? "Start" : timer.running ? "Pause" : "Resume";
-  $("#widget-toggle").setAttribute("aria-label", timer.running ? "Pause" : "Start");
-  $(".icon-pause", $("#widget-toggle")).classList.toggle("is-hidden", !timer.running);
-  $(".icon-play", $("#widget-toggle")).classList.toggle("is-hidden", timer.running);
+  setText(el.primary, isIdle ? "Start" : timer.running ? "Pause" : "Resume");
+  el.widgetToggle.setAttribute("aria-label", timer.running ? "Pause" : "Start");
+  el.iconPause.classList.toggle("is-hidden", !timer.running);
+  el.iconPlay.classList.toggle("is-hidden", timer.running);
 
-  $$(".chip").forEach((c) => c.classList.toggle("is-on", Number(c.dataset.minutes) === timer.presetMinutes));
+  el.chips.forEach((c) => c.classList.toggle("is-on", Number(c.dataset.minutes) === timer.presetMinutes));
 
   const today = new Date().toISOString().slice(0, 10);
-  $("#stat-today").textContent = history[today] || 0;
-  $("#stat-week").textContent = (weekMinutes(history) / 60).toFixed(1);
-  $("#foot-note").textContent = isIdle
+  setText(el.statToday, history[today] || 0);
+  setText(el.statWeek, (weekMinutes(history) / 60).toFixed(1));
+  setText(el.footNote, isIdle
     ? "no session running"
     : timer.mode === "focus"
     ? "break follows this session"
     : settings.autoResumeAfterBreak
     ? "focus resumes automatically"
-    : "resume focus when ready";
+    : "resume focus when ready");
 
   const crossedMode = (prevState === "break") !== (visualState === "break");
   if (crossedMode) fadeModeSwitch([$("#label"), $("#digits")]);
 
-  document.title = isIdle
+  const title = isIdle
     ? "Deep Work"
     : `${formatTime(timer.remainingSeconds)} · ${timer.running ? LABEL[visualState] : "Paused"}`;
+  if (document.title !== title) document.title = title;
 }
 
 /* ---- timer controls ---- */
@@ -154,23 +184,46 @@ $('[data-seg="soundChoice"]').addEventListener("click", (e) => {
 });
 
 const bgUrlInput = $("#bg-url");
+const bgColorInput = $("#bg-color");
+
 $('[data-seg="background-type"]').addEventListener("click", (e) => {
   if (!e.target.dataset.value) return;
-  const type = e.target.dataset.value;
-  const { settings } = store.get();
-  store.patch({ settings: { background: { type, value: settings.background.value } } });
-  paintSeg(e.currentTarget, type);
-  applyBackground(store.get().settings.background);
-});
-bgUrlInput.addEventListener("change", () => {
-  const { settings } = store.get();
-  store.patch({ settings: { background: { type: settings.background.type, value: bgUrlInput.value.trim() } } });
-  applyBackground(store.get().settings.background);
+  const backgroundType = e.target.dataset.value;
+  // only the type changes here — the colour and the image URL keep their own
+  // saved values, so switching back and forth doesn't lose either one
+  applyBackground(store.patch({ settings: { backgroundType } }).settings);
+  paintSeg(e.currentTarget, backgroundType);
 });
 
-function applyBackground(background) {
-  root.dataset.bg = background.type;
-  $(".bg").style.backgroundImage = background.type === "image" && background.value ? `url("${background.value}")` : "";
+bgUrlInput.addEventListener("change", () => {
+  applyBackground(store.patch({ settings: { backgroundImageUrl: bgUrlInput.value.trim() } }).settings);
+});
+
+bgColorInput.addEventListener("input", () => {
+  const backgroundColor = bgColorInput.value;
+  $("#bg-color-value").textContent = backgroundColor;
+  applyBackground(store.patch({ settings: { backgroundColor } }).settings);
+});
+
+// Only http(s) URLs, normalised through the URL parser so quotes and parens
+// come back percent-encoded and can't break out of the CSS url("...") value.
+function safeImageUrl(raw) {
+  if (!raw) return "";
+  try {
+    const url = new URL(raw, location.href);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function applyBackground(settings) {
+  const { backgroundType, backgroundColor, backgroundImageUrl } = settings;
+  root.dataset.bg = backgroundType;
+  root.style.setProperty("--user-bg", backgroundColor);
+
+  const url = backgroundType === "image" ? safeImageUrl(backgroundImageUrl) : "";
+  $(".bg").style.backgroundImage = url ? `url("${url}")` : "";
 }
 
 /* ---- settings: switches ---- */
@@ -199,9 +252,11 @@ function hydrateSettingsUI() {
   paintSeg($('[data-seg="theme"]'), settings.theme);
   paintSeg($('[data-seg="layout"]'), settings.layout);
   paintSeg($('[data-seg="soundChoice"]'), settings.soundChoice);
-  paintSeg($('[data-seg="background-type"]'), settings.background.type);
-  bgUrlInput.value = settings.background.value;
-  applyBackground(settings.background);
+  paintSeg($('[data-seg="background-type"]'), settings.backgroundType);
+  bgUrlInput.value = settings.backgroundImageUrl;
+  bgColorInput.value = settings.backgroundColor;
+  $("#bg-color-value").textContent = settings.backgroundColor;
+  applyBackground(settings);
 
   $$(".switch[data-switch]").forEach((sw) => {
     const on = Boolean(settings[sw.dataset.switch]);

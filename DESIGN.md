@@ -32,7 +32,11 @@ switches, and the yearly progress reveal. Motion stays subtle: fades/scale, no b
   - **Small** — compact centered card
   - **Corner** — floating bottom-right pill widget, minimal chrome (time + pause only)
 - Optional custom background: solid color or image (image via URL only — no file upload,
-  to avoid bloating localStorage with base64 data)
+  to avoid bloating localStorage with base64 data). Color and image URL are stored in
+  **separate** fields so switching type keeps both values; only the control for the
+  selected type is shown. Image URLs are normalised through the URL parser and rejected
+  unless http(s), so they can't break out of the CSS `url("...")` value
+- Escape closes any open modal, including while a text field has focus
 - Yearly focus progress view — GitHub-contributions-style heatmap (Mon-first weeks,
   month labels aligned to real week columns), plus hours/days/streak summary stats
 - Keyboard shortcuts: `space` start/pause, `r` reset, `s` toggle settings, `y` toggle
@@ -50,6 +54,19 @@ fetch/decode resolves (e.g. rapid pause/resume on the very first tick after enab
 sound), caching only the resolved buffer let both calls independently decode and play,
 audibly doubling the sound. A `MIN_REPLAY_GAP_MS` guard in `play()` also caps how often
 the same sound can fire, as defense-in-depth against any other duplicate-trigger path.
+
+## Performance notes (older machines)
+The always-on cost is the once-per-second render plus the timer poll, so:
+- `store.read()` memoises the parsed state against the exact raw string it came from.
+  The cheap `getItem` still runs every poll (so writes from any source — this tab,
+  another tab, devtools — are picked up), but `JSON.parse` only runs when the stored
+  value actually changed.
+- `script.js` caches the nodes `render()` touches instead of re-querying each pass, and
+  `setText()` skips writes whose value is unchanged.
+- The progress bar animates `transform: scaleX()`, not `width` — `width` relaid out the
+  row every second; a transform is composited.
+- No `backdrop-filter` behind image backgrounds (the 0.82 veil already does the
+  readability work; a full-screen blur was a permanent cost whenever one was set).
 
 ## Open bug: ticking sound still doubles in some conditions
 See [issue #1](https://github.com/chancesmith/deep-work/issues/1). Several real causes
@@ -115,7 +132,9 @@ compute the identical correct value instead of compounding relative decrements.
     layout: "big" | "small" | "corner",
     soundEnabled: bool,
     soundChoice: "tick" | "click",
-    background: { type: "none" | "color" | "image", value: string },
+    backgroundType: "none" | "color" | "image",
+    backgroundColor: string,      // hex, e.g. "#DCD9CE"
+    backgroundImageUrl: string,   // http(s) only
     autoResumeAfterBreak: bool,   // defaults true
     defaultPresetMinutes: number
   },

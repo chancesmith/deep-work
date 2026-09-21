@@ -7,7 +7,9 @@ const DEFAULTS = {
     soundEnabled: false,
     soundChoice: "tick",
     completionSoundEnabled: true,
-    background: { type: "none", value: "" },
+    backgroundType: "none",
+    backgroundColor: "#DCD9CE",
+    backgroundImageUrl: "",
     autoResumeAfterBreak: true,
     defaultPresetMinutes: 45,
   },
@@ -21,23 +23,51 @@ const DEFAULTS = {
   history: {},
 };
 
+// Background used to be { type, value } with one `value` shared by colour and
+// image, so switching type clobbered the other one. Split into three fields.
+function migrateSettings(settings) {
+  const next = { ...settings };
+  const legacy = next.background;
+  if (legacy && typeof legacy === "object") {
+    next.backgroundType = legacy.type ?? "none";
+    if (legacy.type === "image") next.backgroundImageUrl = legacy.value || "";
+    if (legacy.type === "color") next.backgroundColor = legacy.value || DEFAULTS.settings.backgroundColor;
+    delete next.background;
+  }
+  return next;
+}
+
+// read() runs on every timer poll, and re-parsing the JSON each time showed up
+// as jank on slower machines. The parsed state is memoised against the exact
+// raw string it came from: the cheap getItem still happens every call, so a
+// write from anywhere (this tab, another tab, devtools) is always picked up,
+// but the parse only runs when the stored value actually differs.
+let cache = null;
+let cacheRaw = null;
+
 function read() {
+  const raw = localStorage.getItem(KEY);
+  if (cache && raw === cacheRaw) return cache;
+
+  cacheRaw = raw;
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return structuredClone(DEFAULTS);
-    const parsed = JSON.parse(raw);
-    return {
-      settings: { ...DEFAULTS.settings, ...parsed.settings },
+    const parsed = raw ? JSON.parse(raw) : {};
+    cache = {
+      settings: { ...DEFAULTS.settings, ...migrateSettings(parsed.settings || {}) },
       timer: { ...DEFAULTS.timer, ...parsed.timer },
       history: parsed.history || {},
     };
   } catch {
-    return structuredClone(DEFAULTS);
+    cache = structuredClone(DEFAULTS);
   }
+  return cache;
 }
 
 function write(state) {
-  localStorage.setItem(KEY, JSON.stringify(state));
+  const raw = JSON.stringify(state);
+  localStorage.setItem(KEY, raw);
+  cacheRaw = raw;
+  cache = state;
 }
 
 export const store = {

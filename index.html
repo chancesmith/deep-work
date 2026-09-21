@@ -134,7 +134,11 @@
         <button class="seg__opt" data-value="color">Color</button>
         <button class="seg__opt" data-value="image">Image</button>
       </div>
-      <input class="input" id="bg-url" type="url" placeholder="https://images.example.com/photo.jpg" spellcheck="false">
+      <label class="bg-control" data-bg-control="color">
+        <input class="input input--color" id="bg-color" type="color" aria-label="Background colour">
+        <span class="bg-control__hint" id="bg-color-value">#DCD9CE</span>
+      </label>
+      <input class="input bg-control" data-bg-control="image" id="bg-url" type="url" placeholder="https://images.example.com/photo.jpg" spellcheck="false">
     </div>
 
     <button class="btn btn--ghost btn--danger" id="reset-defaults">Reset to defaults</button>
