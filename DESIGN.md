@@ -100,15 +100,26 @@ The always-on cost is the once-per-second render plus the timer poll, so:
 - No `backdrop-filter` behind image backgrounds (the 0.82 veil already does the
   readability work; a full-screen blur was a permanent cost whenever one was set).
 
-## Open bug: ticking sound still doubles in some conditions
-See [issue #1](https://github.com/chancesmith/deep-work/issues/1). Several real causes
-have been found and fixed (see the gotchas below, and keep their regression tests), but
-doubling is still reported. **Leading suspect: the audio was never made multi-tab safe.**
-`0a3ea96` made the *countdown* idempotent across tabs, but every open tab still runs its
-own poll loop and calls `playTick()` independently — two open tabs measurably produce
-~8 audible ticks per 4 seconds, on independent phases. Likely fix is sound ownership
-(a visibility gate and/or leader election via `BroadcastChannel`). Read the issue before
-attempting another fix; it lists what's already been ruled out with evidence.
+## Only one tab is allowed to make noise
+Every open tab runs its own timer loop against the same shared `localStorage`, so each
+one would play its own tick — measurably ~8 audible ticks per 4s with two tabs open,
+slightly out of phase, which is heard as a doubled tick. This was the long-running
+"double ticking" bug (issue #1); the giveaway was that flipping the *ticking toggle*
+could trigger it, since that setting lands in shared storage and every open tab picks
+it up.
+
+`js/sound.js` gates all playback on a short lease in `localStorage`
+(`deepwork:sound-owner`): the holder renews it on each play, and other tabs stay silent.
+Details that matter if you touch this:
+- **Visibility breaks ties.** A hidden tab's timers get throttled hard enough to let its
+  lease lapse, which made the lease flap between tabs and reintroduced the odd double.
+  A visible tab takes over from a hidden owner; otherwise the current owner keeps it.
+- **The stale window is generous (6s)** for that same reason, and the lease is released
+  explicitly on `pagehide` so closing a tab hands over immediately instead of waiting it
+  out.
+
+Covered by `tests/multi-tab-sound.spec.js`, which is `mode: "serial"` — it opens several
+real tabs and asserts on audio cadence, so it's contention-sensitive.
 
 ## Known gotcha: resuming must not re-announce the current second
 `js/timer.js` dedupes ticks with `lastAnnouncedRemaining`. Anything that changes timer
